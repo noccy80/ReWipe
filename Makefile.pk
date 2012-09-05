@@ -1,0 +1,9 @@
+data: $(PACK)
+
+HDR_PK  = [\033[0;33m%-3s\033[0m]
+CLEAN  += $(PACK)
+	
+%.pk: %.lst
+	printf "$(HDR_PK) \033[1m%s\033[0m: %s\n" "PKG" "$@" "$<"
+	cat $< | xargs 7z a -tzip -bd $@ > /dev/null
+

@@ -1,0 +1,123 @@
+#
+# Generic Makefile for MSP430-based projects
+#
+# (c) 2011, NoccyLabs.info
+#
+# DO NOT MODIFY THIS SCRIPT. INSTEAD INCLUDE IT IN YOUR OWN MAKEFILE LIKE THIS:
+#
+#   SOURCES  = foo.c
+#   TARGET   = bar
+#   include common.mk
+#
+# You can define more variables, such as SOURCESA for assembly source files,
+# INCLUDES to point to include dirs (such as -Ilib/include), LIBS to point to
+# a location where to find libraries (such as -Llib).
+#
+#
+#
+
+# Compiler and other binaries. No need to change these really, unless you know
+# what you are doing.
+#TCPF     = msp430-
+TCPF     =
+CC       = $(TCPF)gcc
+NAKENASM = naken430asm
+GCCASM   = $(TCPF)gcc
+OBJCOPY  = $(TCPF)objcopy
+SIZE     = $(TCPF)size -x
+STRIP    = $(TCPF)strip
+# Flags and command lines
+#  if your main never returns: -mendup-at=main  (saves 6 bytes of ram)
+CFLAGS   = -ffunction-sections -fdata-sections -fno-inline-small-functions \
+	-g -O2 -Wall -Wunused $(INCLUDES) $(CXXFLAGS)
+ASFLAGS  = -x assembler-with-cpp -Wa,-gstabs
+LDFLAGS  = -Wl,-Map=$(TARGET).map
+# Object files and listings
+OBJS     = $(SOURCEC:.c=.c.o) $(SOURCEASM:.asm=.asm.o) $(SOURCEASM:.s43=.s43.o) $(SOURCECPP:.cpp=.cpp.o)
+LSTS     = $(SOURCEC:.c=.lst) $(SOURCECPP:.cpp=.lst)
+ASMTYPE ?= gcc
+AR      ?= $(TCPF)ar
+ARLFAGS ?= r
+
+HDR_ASM  = [\033[0;32m%-3s\033[0m]
+HDR_CC   = [\033[0;32m%-3s\033[0m]
+HDR_AR   = [\033[0;33m%-3s\033[0m]
+HDR_LD   = [\033[0;36m%-3s\033[0m]
+HDR_HEX  = [\033[0;36m%-3s\033[0m]
+HDR_LST  = [\033[0;35m%-3s\033[0m]
+HDR_UTIL = [\033[0;96m%-3s\033[0m]
+
+# Phony targets; all and clean
+.phony: all bin lib clean listing prog identify package help
+
+# Target rules
+all: $(BUILD)
+lib: $(TARGET).a
+bin: $(TARGET)
+
+# Build library
+$(TARGET).a: $(OBJS)
+	printf "$(HDR_AR) \033[1m%s.a\033[0m: \033[37m%s\033[0m\n" "AR" "$(TARGET)" "$(strip $(OBJS))"
+	$(AR) r -o $(TARGET).a $(OBJS) 2>/dev/null
+
+# Build binary
+$(TARGET): $(OBJS)
+	printf "$(HDR_LD) \033[1m%s\033[0m: \033[37m%s\033[0m %s\n" "LD" "$(TARGET)" "$(strip $(OBJS))" "$(if $(LIBS),(+$(subst -l,,$(LIBS))),)"
+	$(CC) $(LDFLAGS) $(LIBPATH) -o $(TARGET) $(OBJS) $(LIBS) 
+
+size:
+	$(SIZE) $(TARGET)
+
+listing: $(LSTS)
+	
+# Compile the object files
+%.c.o: %.c
+	printf "$(HDR_CC) %s\n" "CC" "$@"
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
+
+# Compile the object files
+%.cpp.o: %.cpp
+	printf "$(HDR_CC) %s\n" "CPP" "$@"
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
+
+# Clean
+clean:
+ifeq ($(BUILD),lib)
+	rm -fr $(TARGET).a $(OBJS) $(CLEAN)
+else
+	rm -fr $(TARGET) $(TARGET).map $(OBJS) $(CLEAN)
+endif
+
+# Docs
+docs: Doxyfile
+	printf "$(HDR_UTIL) Doxygen\n" "DOC"
+	doxygen 2>doxygen.err >doxygen.log
+
+package: clean
+	@echo "Packaging source..."
+	@bash -c "test -e $(TARGET)-src.tgz && rm -rf $(TARGET)-src.tgz; exit 0"
+	@echo "Copying files..."
+	@mkdir /tmp/$(TARGET)-src
+	@cp * /tmp/$(TARGET)-src
+	@echo "Creating tarball..."
+	@cd /tmp && tar cfz $(TARGET)-src.tgz $(TARGET)-src
+	@mv /tmp/$(TARGET)-src.tgz .
+	@echo "Cleaning up..."
+	@rm -rf /tmp/$(TARGET)-src
+
+help:
+	@echo "Build type:"
+	@echo "  $(BUILD)"
+	@echo "Target binary:"
+	@echo "  $(TARGET)"
+	@echo "Source files:"
+	@echo "  $(SOURCES) $(SOURCESASM)"
+	@echo 
+	@echo "Supported rules:"
+	@echo "  all       Same as $(BUILD)"
+	@echo "  bin       Only build binary (if supported)"
+	@echo "  lib       Only build library (if supported)"
+	@echo "  clean     Clean the build environment"
+	@echo "  package   Create tarball package"
+
+.SILENT: 
