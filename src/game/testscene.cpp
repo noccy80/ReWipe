@@ -141,7 +141,7 @@ void TestScene::render(bool focus) {
 	float vfps = (float)(i / elapsed);
 	
 	int mslast = (tickcurrent - ticklast);
-	int fps = 10;
+	int fps = 50;
 	// How long to wait
 	unsigned long tpf = 1000/fps;
 	unsigned long msl = mslast/1000;

@@ -24,8 +24,9 @@ int main(int argc, char** argv) {
 	
 	Game* game = new Game();
 	game->mainloop();
+	delete game;
 
-	delete input;
+	//delete input;
 	delete display;
 
 	SDL_Quit();

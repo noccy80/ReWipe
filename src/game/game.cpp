@@ -7,6 +7,10 @@ Game::Game() {
 
 }
 
+Game::~Game() {
+
+}
+
 void Game::initialize() {
 
 	TestScene* ts = new TestScene();

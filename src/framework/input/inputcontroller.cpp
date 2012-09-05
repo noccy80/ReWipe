@@ -39,6 +39,7 @@ InputController::~InputController() {
 	if (this->joy) {
 		SDL_JoystickClose(this->joy);
 	}
+	LOG("Done destroying\n");
 }
 
 void InputController::loadBindings() {
